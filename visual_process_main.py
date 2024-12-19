@@ -8,7 +8,7 @@ from calc_onset import onset_consider_volume
 from performer_detection import yolo_detection, feature_extraction
 from visual_expression import zoom_frames, radial_frames, split_frames, make_gradation
 
-
+"""
 def main(input_video:str, output_video:str):
   #default_setting
   cap = cv2.VideoCapture(input_video)#動画
@@ -156,6 +156,7 @@ def write_frames(frames:list, times:list) -> None:
     sleep = max(1, int(play_time - elapsed))
     if cv2.waitKey(sleep) & 0xFF == ord("q"):
       break
+"""
 
 if __name__ == "__main__":
   input_video = sys.argv[1]
