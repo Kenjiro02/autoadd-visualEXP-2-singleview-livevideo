@@ -1,13 +1,14 @@
 import cv2
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+import math
 
 #グローバル変数
 pop_flag = False
 
 ##ズーム
 #pilow -> cv2
-def pil2cv(imgPIL) -> numpy.ndarray:
+def pil2cv(imgPIL) -> np.ndarray:
   imgCV_RGB = np.array(imgPIL, dtype = np.uint8)
   imgCV_BGR = np.array(imgPIL)[:, :, ::-1]
   return imgCV_BGR
@@ -18,7 +19,7 @@ def cv2pil(imgCV):
   return imgPIL
 
 def zoom_frames(frames:list, xmin:float, xmax:float, ymin:float, ymax:float) -> list:
-  height, widht, _ = frames[0].shape
+  height, width, _ = frames[0].shape
   box_width = xmax - xmin #ズームする箇所の横幅
   box_height = ymax - ymin #ズームする箇所の縦幅
   zoom_x = int(xmax + xmin) / 2 #ズームの中心x
@@ -139,7 +140,7 @@ def radial_frames(frames:list, mask:np.array) -> list:
 
 ##画面分割(3分割)
 def split_frames(frames, df_performer_movement) -> list:
-  height, widht, _ = frames[0].shape
+  height, width, _ = frames[0].shape
   split_frames = []
   split_num = 3 #分割する数
   for frame in frames:

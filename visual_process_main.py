@@ -6,7 +6,7 @@ import sys
 import ffmpeg
 from calc_onset import onset_consider_volume
 #from performer_detection import yolo_detection, feature_extraction
-#from visual_expression import zoom_frames, radial_frames, split_frames, make_gradation
+from visual_expression import zoom_frames, radial_frames, split_frames, make_gradation
 """
 メイン処理
 Args:
@@ -19,68 +19,77 @@ Output:
 """
 
 def main(input_video:str, output_video:str):
+  print("args : " + input_video + ", " + output_video)
+
   # エラー処理
   if not input_video.endswith('.mp4'):
     raise ValueError("ファイルの拡張子が.mp4ではありません")
   if not output_video.endswith('.mp4'):
     raise ValueError("ファイルの拡張子が.mp4ではありません")
-  # default_setting
+  
+  # ----default_setting----
   # 入力動画を読み取る
-  cap = cv2.VideoCapture(input_video)#動画
-  width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))#横幅
-  height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))#縦幅
-  size = (width, height)#(横幅, 縦幅)
-  fps = float(cap.get(cv2.CAP_PROP_FPS))#fps
-  totalFrames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))#フレーム総数
+  cap = cv2.VideoCapture(input_video)# 動画
+  width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))# 横幅
+  height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))# 縦幅
+  size = (width, height)# (横幅, 縦幅)
+  fps = float(cap.get(cv2.CAP_PROP_FPS))# fps
+  totalFrames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))# フレーム総数
+
   # 出力フォーマット
   fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
-  video = cv2.VideoWriter(output_video, fourcc, fps, (width, height))#出力動画
-  # 入力動画から音声を抽出
-  stream = ffmpeg.input(input_video) #入力
-  audio_file = "audio/" + input_video.split("/")[-1].replace(".mp4", "") + ".wav"
-  stream = ffmpeg.output(stream, audio_file) #出力
-  ffmpeg.run(stream)#実行
+  out_video = cv2.VideoWriter("stock/out_video.mp4", fourcc, fps, (width, height))# 出力動画
 
+  # 入力動画から音声を抽出
+  stream = ffmpeg.input(input_video) # 入力
+  audio_file = "audio/" + input_video.split("/")[-1].replace(".mp4", "") + ".wav"
+  stream = ffmpeg.output(stream, audio_file) # 出力
+  ffmpeg.run(stream, quiet=True, overwrite_output=True)# 実行
+
+  # オンセット計算
   switch_visual_timing = onset_consider_volume(audio_file)
-  print(switch_visual_timing)
-  """
+  print("onset calc finished!!")
+
+  # 変数定義
   frame_count = 0
   start_time = time.time()
-  frames = [] #フレーム格納配列
-  times = [] #時間格納配列
-  write_time_before = 0 #フレームブロックの書き出しタイミング
-  """
-  """
-  #ラディアルブラーでのマスク作成
+  frames = [] # フレーム格納配列
+  times = [] # 時間格納配列
+  write_time_before = 0 # フレームブロックの書き出しタイミング
+  # 現在のそれぞれの演者の動作量
+  df_performer_movement = pd.DataFrame([], columns=["xmin", "ymin", "xmax", "ymax", "movement", "visual_express"])
+  # 前のフレーム情報
+  frame_before = None # 1つ前のフレーム
+  df_objects_performer_before = pd.DataFrame([], [])# 1つ前の上手く人物認識できたフレーム情報
+  df_performer_movement_before = pd.DataFrame([], columns=["xmin", "ymin", "xmax", "ymax", "movement", "visual_express"])# １つ前のフレームでのそれぞれの演者の動作量
+
+  # ラディアルブラーでのマスク作成
   mask = make_gradation(width, height)
   mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-  #現在のそれぞれの演者の動作量
-  df_performer_movement = pd.DataFrame([], columns=["xmin", "ymin", "xmax", "ymax", "movement", "visual_express"])
-  #前のフレーム情報
-  frame_before = None #1つ前のフレーム
-  df_objects_performer_before = pd.DataFrame([], [])#1つ前の上手く人物認識できたフレーム情報
-  df_performer_movement_before = pd.DataFrame([], columns=["xmin", "ymin", "xmax", "ymax", "movement", "visual_express"])#１つ前のフレームでのそれぞれの演者の動作量
-  #メイン処理
+  
+  # メイン処理
   while True:
     # 画像を取得
     ret, frame = cap.read()
     frame_original = frame
     # 再生が終了したらループを抜ける
     if ret == False:
-      write_frames(frames, times)
+      write_frames(frames, times, out_video) # フレームの書き込み
       break
     #-------処理--------
     #演者認識
-    df_objects_performer = yolo_detection(frame, df_objects_performer_before)
+    #df_objects_performer = yolo_detection(frame, df_objects_performer_before)
     #動体検知
-    df_performer_movement = feature_extraction(frame, frame_before, df_objects_performer, df_objects_performer_before, df_performer_movement)
+    #df_performer_movement = feature_extraction(frame, frame_before, df_objects_performer, df_objects_performer_before, df_performer_movement)
     #動体検知による映像表現、logのリセット
     if len(switch_visual_timing) > 0:
-      #オンセットタイミングを超えたら映像表現を付与
+      # オンセットタイミングを超えたら映像表現を付与
       if switch_visual_timing[0] < frame_count/fps:
         if df_performer_movement_before.empty:#最初のフレームではフレーム情報をコピー
-          df_performer_movement_before = df_performer_movement.copy()
+          first_block = True
+          #df_performer_movement_before = df_performer_movement.copy()
         else:
+          """
           #映像表現
           for row in df_performer_movement.itertuples():
             if row.Index in df_performer_movement_before.index:
@@ -131,18 +140,21 @@ def main(input_video:str, output_video:str):
             print("None")
           df_performer_movement_before = df_performer_movement.copy()
           df_performer_movement = pd.DataFrame([], columns=["xmin", "ymin", "xmax", "ymax", "movement"])
-          switch_visual_timing.pop(0)#オンセットタイミングの先頭を削除
-        if times[0] - write_time_before > 1:#前回の書き出しから間がある場合のエラー
+          """
+        switch_visual_timing.pop(0)#オンセットタイミングの先頭を削除
+        # 前回の書き出しから間がある場合のエラー処理
+        if times[0] - write_time_before > 1:
           raise ValueError("frame export ERROR")
-        write_frames(frames, times)#フレームの書き込み
+        write_frames(frames, times, out_video) # フレームの書き込み
         write_time_before = times[-1]
         frames.clear()
         times.clear()
 
-    #フレーム情報の保存
+    
+    # フレーム情報の保存
     frames.append(frame)
     times.append(frame_count/fps)
-    df_objects_performer_before = df_objects_performer
+    #df_objects_performer_before = df_objects_performer
     #--------------------
 
     print(frame_count/totalFrames*100)
@@ -150,35 +162,24 @@ def main(input_video:str, output_video:str):
     frame_count+=1
 
   cap.release()
-  video.release()
+  out_video.release()
+  video_set_audio("stock/out_video.mp4", audio_file, output_video)
   print("success!")
-  """
-"""
-def set_audio(input_video:str, output_video):
-  #入力動画から音声を抽出
-  clip_input = mp.VideoFileClip(input_video).subclip()
-  clip_input.audio.write_audiofile('audio.wav')
-  #出力動画に音声をセット
-  clip_output = mp.VideoFileClip(output_video).subclip()
-  clip_output.write_videofile(output_video.replace('.avi', '.mp4'), audio='audio.wav')
-
-#フレームの書き込み
-def write_frames(frames:list, times:list) -> None:
-  global start_time
-  global video
-  global cap
+  
+# フレームの書き込み
+def write_frames(frames: list, times: list, video_writer: cv2.VideoWriter) -> None:
   for i in range(len(frames)):
     frame = frames[i]
     time = times[i]
-    video.write(frame)
+    video_writer.write(frame)
+  print("write frame finished!!")
 
-    #ウィンドウでの再生速度を元動画と合わせる
-    elapsed = (time) * 1000  # msec
-    play_time = int(cap.get(cv2.CAP_PROP_POS_MSEC))
-    sleep = max(1, int(play_time - elapsed))
-    if cv2.waitKey(sleep) & 0xFF == ord("q"):
-      break
-"""
+# 動画と音声を結合
+def video_set_audio(input_video: str, input_audio: str, output_video: str) -> None:
+  stream_v = ffmpeg.input(input_video) # 入力動画
+  stream_a = ffmpeg.input(input_audio) # 入力音声
+  stream_out = ffmpeg.output(stream_v, stream_a, output_video, vcodec="copy", acodec="aac") # 出力動画
+  ffmpeg.run(stream_out) # 実行 , quiet=True, overwrite_output=True
 
 if __name__ == "__main__":
   input_video = sys.argv[1]

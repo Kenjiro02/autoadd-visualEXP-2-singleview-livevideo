@@ -40,7 +40,7 @@ def add_another_timing(onset_timing:list, another_list:list) -> list:
   #近すぎるオンセットをまとめる
   visual_timing = []
   ad_time = 0
-  for i in range(len(onset_lylic_timing)):
+  for i in range(len(onset_timing)):
     if i == 0:
       ad_time = onset_timing[i]
       visual_timing.append(ad_time)
@@ -50,7 +50,7 @@ def add_another_timing(onset_timing:list, another_list:list) -> list:
       visual_timing.append(ad_time)
   return visual_timing
 
-def draw_onset_graph(audio:str, strength=1:float, another_list=[]:list) -> None:
+def draw_onset_graph(audio:str, strength: float = 1, another_list: list = []) -> None:
   #音声の要素を抽出
   y, sr = librosa.load(audio, sr=16000, mono=True) #音声読み込み
   rms = librosa.feature.rms(y=y) #音量の計算
@@ -85,7 +85,7 @@ def draw_onset_graph(audio:str, strength=1:float, another_list=[]:list) -> None:
     plt.title('onset_timing')
   plt.subplot(2, 1, 2)
   plt.plot(onset_times, onset_envelope, label='Onset strength')
-  plt.vlines(visual_timing, 0, onset_envelope.max(), color='r', alpha=0.9,
+  plt.vlines(onset_timing, 0, onset_envelope.max(), color='r', alpha=0.9,
             linestyle='--', label='Onsets')
   if len(another_list) != 0:
     plt.vlines(another_list, 0, onset_envelope.max(), color='g', alpha=0.9, linestyle='--', label='alpha')

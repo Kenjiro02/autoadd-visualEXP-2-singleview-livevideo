@@ -2,3 +2,5 @@
 /audio/
 /output/
 /video/
+/stock/
+/__pycache__/
