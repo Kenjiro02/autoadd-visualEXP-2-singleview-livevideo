@@ -1,16 +1,31 @@
 import cv2
-import moviepy.editor as mp
-import pandas as pd
 import numpy as np
+import pandas as pd
 import time
 import sys
+import ffmpeg
 from calc_onset import onset_consider_volume
-from performer_detection import yolo_detection, feature_extraction
-from visual_expression import zoom_frames, radial_frames, split_frames, make_gradation
-
+#from performer_detection import yolo_detection, feature_extraction
+#from visual_expression import zoom_frames, radial_frames, split_frames, make_gradation
 """
+メイン処理
+Args:
+  input_video(str) : 入力ビデオのパス
+  output_video(str) : 出力ビデオのパス
+Output:
+  .mp4 : 出力ビデオ
+使用例:
+  python visual_process_main.py video/yumeno_test.mp4 output/yumeno_test_output.mp4
+"""
+
 def main(input_video:str, output_video:str):
-  #default_setting
+  # エラー処理
+  if not input_video.endswith('.mp4'):
+    raise ValueError("ファイルの拡張子が.mp4ではありません")
+  if not output_video.endswith('.mp4'):
+    raise ValueError("ファイルの拡張子が.mp4ではありません")
+  # default_setting
+  # 入力動画を読み取る
   cap = cv2.VideoCapture(input_video)#動画
   width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))#横幅
   height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))#縦幅
@@ -20,16 +35,22 @@ def main(input_video:str, output_video:str):
   # 出力フォーマット
   fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
   video = cv2.VideoWriter(output_video, fourcc, fps, (width, height))#出力動画
-  #入力動画から音声を抽出
-  clip_input = mp.VideoFileClip(input_video).subclip()
-  clip_input.audio.write_audiofile('audio.wav')
+  # 入力動画から音声を抽出
+  stream = ffmpeg.input(input_video) #入力
+  audio_file = "audio/" + input_video.split("/")[-1].replace(".mp4", "") + ".wav"
+  stream = ffmpeg.output(stream, audio_file) #出力
+  ffmpeg.run(stream)#実行
 
-  switch_visual_timing = onset_consider_volume("audio.wav")
+  switch_visual_timing = onset_consider_volume(audio_file)
+  print(switch_visual_timing)
+  """
   frame_count = 0
   start_time = time.time()
   frames = [] #フレーム格納配列
   times = [] #時間格納配列
   write_time_before = 0 #フレームブロックの書き出しタイミング
+  """
+  """
   #ラディアルブラーでのマスク作成
   mask = make_gradation(width, height)
   mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
@@ -131,7 +152,8 @@ def main(input_video:str, output_video:str):
   cap.release()
   video.release()
   print("success!")
-
+  """
+"""
 def set_audio(input_video:str, output_video):
   #入力動画から音声を抽出
   clip_input = mp.VideoFileClip(input_video).subclip()

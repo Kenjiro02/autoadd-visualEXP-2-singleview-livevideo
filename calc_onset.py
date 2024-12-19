@@ -1,10 +1,9 @@
 import numpy as np
 import librosa
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 
 #音量を考慮したオンセット検知のタイミング返す
-def onset_consider_volume(audio:str, strength=1:float) -> list: #（オーディオファイル名、オンセット強度）-> オンセット配列
+def onset_consider_volume(audio: str, strength: float = 1) -> list: #（オーディオファイル名、オンセット強度）-> オンセット配列
   #音声の要素を抽出
   y, sr = librosa.load(audio, sr=16000, mono=True) #音声読み込み
   rms = librosa.feature.rms(y=y) #音量の計算
@@ -51,7 +50,7 @@ def add_another_timing(onset_timing:list, another_list:list) -> list:
       visual_timing.append(ad_time)
   return visual_timing
 
-def drow_onset_graph(audio:str, strength=1:float, another_list=[]:list) -> None:
+def draw_onset_graph(audio:str, strength=1:float, another_list=[]:list) -> None:
   #音声の要素を抽出
   y, sr = librosa.load(audio, sr=16000, mono=True) #音声読み込み
   rms = librosa.feature.rms(y=y) #音量の計算
