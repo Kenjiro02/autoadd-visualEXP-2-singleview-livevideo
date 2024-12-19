@@ -17,6 +17,7 @@ model = YOLO("yolov10n.pt")
 names = model.names
 
 def yolo_detection(frame, df_objects_performer_before): #（フレーム画像、１フレーム前の演者データフレーム）-> 演者データフレーム
+  height, width, _ = frame.shape
   objects_person = []
   #yoloでフレームから人物検出しデータフレームに格納
   results = model(frame)
@@ -81,32 +82,34 @@ def yolo_detection(frame, df_objects_performer_before): #（フレーム画像�
   return df_objects_performer
 
 #検出した演者を囲む
-def box_performer(frame, df_objects_perfromer): #（フレーム画像、演者のデータフレーム）-> フレーム画像
-  height, widht, _ = frame.shape
-  for i in range(len(df_objects_perfromer)):
-    x1 = df_objects_perfromer.xmin[i]
-    y1 = df_objects_perfromer.ymin[i]
-    x2 = df_objects_perfromer.xmax[i]
-    y2 = df_objects_perfromer.ymax[i]
+def box_performer(frame, df_objects_performer): #（フレーム画像、演者のデータフレーム）-> フレーム画像
+  height, width, _ = frame.shape
+  for i in range(len(df_objects_performer)):
+    x1 = df_objects_performer.xmin[i]
+    y1 = df_objects_performer.ymin[i]
+    x2 = df_objects_performer.xmax[i]
+    y2 = df_objects_performer.ymax[i]
     left_pt = (int(x1), int(y1))
     right_pt = (int(x2), int(y2))
     cv2.rectangle(frame, left_pt, right_pt, (0,255,0), 2)
-    part = df_objects_perfromer.part[i]
+    part = df_objects_performer.part[i]
     cv2.putText(frame, text=part, org=(int(x1), int(y1)), fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1.0, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_4)
   return frame
 
 
 #特徴点検出
 def feature_extraction(frame, frame_before, df_objects_performer, df_objects_performer_before,  df_performer_movement, draw_flag=False):
-  height, widht, _ = frame.shape
+  height, width, _ = frame.shape
 
   if frame_before is None:
     return frame
 
   #今のフレームと前のフレームで重複する演者だけにする
-  df_objects_performer_sort = df_objects_performer[df_objects_performer["part"].isin(df_objects_performer_before["part"])]
+  #df_objects_performer_sort = df_objects_performer[df_objects_performer["part"].isin(df_objects_performer_before["part"].to_numpy())]
+  df_objects_performer_sort = df_objects_performer.query("part in " + str(df_objects_performer_before["part"].to_numpy()))
   df_objects_performer_sort = df_objects_performer_sort.reset_index(drop=True)
-  df_objects_performer_before_sort = df_objects_performer_before[df_objects_performer_before["part"].isin(df_objects_performer["part"])]
+  #df_objects_performer_before_sort = df_objects_performer_before[df_objects_performer_before["part"].isin(df_objects_performer["part"])]
+  df_objects_performer_before_sort = df_objects_performer_before.query("part in " + str(df_objects_performer["part"].to_numpy()))
   df_objects_performer_before_sort = df_objects_performer_before_sort.reset_index(drop=True)
   for i in range(len(df_objects_performer_sort)):
     if not df_objects_performer_sort.part[i] in df_performer_movement.index:#追加で検出された演者を登録する

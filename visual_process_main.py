@@ -5,7 +5,7 @@ import time
 import sys
 import ffmpeg
 from calc_onset import onset_consider_volume
-#from performer_detection import yolo_detection, feature_extraction
+from performer_detection import yolo_detection, feature_extraction, box_performer
 from visual_expression import zoom_frames, radial_frames, split_frames, make_gradation
 """
 メイン処理
@@ -14,6 +14,9 @@ Args:
   output_video(str) : 出力ビデオのパス
 Output:
   .mp4 : 出力ビデオ
+Note:
+  以下のファイルを作成してください
+  video audio stock output
 使用例:
   python visual_process_main.py video/yumeno_test.mp4 output/yumeno_test_output.mp4
 """
@@ -78,7 +81,8 @@ def main(input_video:str, output_video:str):
       break
     #-------処理--------
     #演者認識
-    #df_objects_performer = yolo_detection(frame, df_objects_performer_before)
+    df_objects_performer = yolo_detection(frame, df_objects_performer_before)
+    frame = box_performer(frame, df_objects_performer)
     #動体検知
     #df_performer_movement = feature_extraction(frame, frame_before, df_objects_performer, df_objects_performer_before, df_performer_movement)
     #動体検知による映像表現、logのリセット
@@ -154,7 +158,7 @@ def main(input_video:str, output_video:str):
     # フレーム情報の保存
     frames.append(frame)
     times.append(frame_count/fps)
-    #df_objects_performer_before = df_objects_performer
+    df_objects_performer_before = df_objects_performer
     #--------------------
 
     print(frame_count/totalFrames*100)
@@ -179,7 +183,7 @@ def video_set_audio(input_video: str, input_audio: str, output_video: str) -> No
   stream_v = ffmpeg.input(input_video) # 入力動画
   stream_a = ffmpeg.input(input_audio) # 入力音声
   stream_out = ffmpeg.output(stream_v, stream_a, output_video, vcodec="copy", acodec="aac") # 出力動画
-  ffmpeg.run(stream_out) # 実行 , quiet=True, overwrite_output=True
+  ffmpeg.run(stream_out, quiet=True, overwrite_output=True) # 実行
 
 if __name__ == "__main__":
   input_video = sys.argv[1]

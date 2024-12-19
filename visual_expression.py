@@ -43,13 +43,13 @@ def zoom_frames(frames:list, xmin:float, xmax:float, ymin:float, ymax:float) -> 
     trim_frames.append(trim_frame)
   return trim_frames
 
-##方向線（radial_blur）：メイン　radial_frames
+##方向線（radial_blur）：メイン radial_frames
 #画像にラディアルブラーをかける
 def radial_blur(src, pos, ratio, iterations, margin): #(フレーム画像、中心座標、最大縮小率、重ね枚数、余白) -> フレーム画像
   h, w = src.shape[0:2]
   n = iterations
   m = margin
-  # 背景作成(255:白　0:黒)
+  # 背景作成(255:白 0:黒)
   bg = np.ones(src.shape, dtype=np.uint8) * 255
   bg = cv2.resize(bg, (int(m * w), int(m * h)))
   # 背景の中心に元画像を配置
